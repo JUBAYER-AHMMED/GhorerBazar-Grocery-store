@@ -1,7 +1,7 @@
 {
   "builds": [
     {
-      "src": "phi_mart/wsgi.py",
+      "src": "GhorerBazar/wsgi.py",
       "use": "@vercel/python",
       "config": { "maxLambdaSize": "15mb", "runtime": "python3.11.3" }
     }
@@ -9,7 +9,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "phi_mart/wsgi.py"
+      "dest": "GhorerBazar/wsgi.py"
     }
   ]
 }
