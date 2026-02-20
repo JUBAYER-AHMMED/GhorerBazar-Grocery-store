@@ -22,17 +22,18 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    seller = serializers.StringRelatedField(read_only=True)
+
     class Meta:
         model = Product
         fields = [
-            'id', 'name','description','stock', 'price','price_with_tax','images','category'
+            'id', 'name','description','stock', 'price','price_with_tax','images','category','seller'
         ]
     
     price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
   
     def calculate_tax(self,product):
-        return round(product.price * Decimal(1.1),2)
-    
+        return (product.price * Decimal('1.10')).quantize(Decimal('0.01'))    
     def validate_price(self,price):
         if price < 0:
             raise serializers.ValidationError('Price could not be negative')
