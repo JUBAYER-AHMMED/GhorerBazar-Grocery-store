@@ -29,7 +29,8 @@ class UserSerializer(BaseUserSerializer):
             'address',
             'phone_number',
             'balance',
-            'role'
+            'role',
+            'profile_image'
         ]
         read_only_fields = ['balance', 'role']
 
@@ -39,3 +40,21 @@ class UserRoleUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'email', 'role']
         read_only_fields = ['id', 'email']
+
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id',
+            'email',
+            'first_name',
+            'last_name',
+            'phone_number',
+            'address',
+            'profile_image',
+            'role',
+            'balance'
+        ]
+        read_only_fields = ['email', 'role', 'balance']

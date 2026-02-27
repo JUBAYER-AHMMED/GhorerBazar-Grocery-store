@@ -4,7 +4,8 @@ from rest_framework_nested import routers
 from product.views import ProductViewSet, CategoryViewSet ,ReviewViewSet, ProductImageViewSet,SellerProductViewSet
 from order.views import CartViewSet,CartItemViewSet,OrderViewSet, SellerOrderViewSet, WishlistViewSet
 from users.views import DepositView , UserRoleManagementViewSet
-
+from order.views import SSLCommerzPaymentView, SSLCommerzIPNView
+from users.views import UserProfileView
 
 
 router = routers.DefaultRouter()
@@ -34,4 +35,9 @@ urlpatterns = [
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
     path('deposit/', DepositView.as_view(), name='deposit'),
+    # path("create-checkout-session/", CreateStripeSessionView.as_view(), name="create-checkout-session"),
+    path("create-sslcommerz-session/", SSLCommerzPaymentView.as_view(), name="sslcommerz-session"),
+    path("sslcommerz-ipn/", SSLCommerzIPNView.as_view(), name="sslcommerz-ipn"),
+    path('users/profile/', UserProfileView.as_view(), name='user-profile'),
+
 ]

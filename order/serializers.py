@@ -16,6 +16,8 @@ class AddCartItemSerializer(serializers.ModelSerializer):
         fields = ['id','product_id','quantity']
 
     def save(self,**kwargs):
+        # print("Serializer context:", self.context)
+        # print("Validated data:", self.validated_data)
         cart_id = self.context['cart_id']
         product_id = self.validated_data['product_id']
         quantity = self.validated_data['quantity']
@@ -55,12 +57,13 @@ class CartSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField(method_name='get_total_price')
     class Meta:
         model = Cart
-        fields = ['id','user','items','total_price']
-        read_oly_fields = ['user']
+        # fields = ['id','user','items','total_price']
+        fields = ['id','items','total_price']
+        # read_only_fields = ['user']
     def get_total_price(self,cart:Cart):
         # list=[item.product.price * item.quantity for item in cart.items.all()]
         list=[item.product.price * item.quantity for item in cart.items.all()]
-        print('list',list)
+        # print('list',list)
         total = sum(list)
         return total
 
@@ -112,12 +115,14 @@ class OrderSerializer(serializers.ModelSerializer):
 class CreateOrderSerializer(serializers.Serializer):
     cart_id =serializers.UUIDField()
     def validate_cart_id(self, cart_id):
-        if not Cart.objects.filter(pk = cart_id).exists():
-            raise serializers.ValidationError('No cart found with this id!')
-        
-        if not CartItem.objects.filter(cart_id = cart_id).exists():
-            raise serializers.ValidationError('Cart is empty!')
-        
+        user = self.context['user']
+
+        if not Cart.objects.filter(pk=cart_id, user=user).exists():
+            raise serializers.ValidationError("Invalid cart.")
+
+        if not CartItem.objects.filter(cart_id=cart_id).exists():
+            raise serializers.ValidationError("Cart is empty.")
+
         return cart_id
     def create(self, validated_data):
         user_id = self.context['user_id']
@@ -178,3 +183,18 @@ class SellerOrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'user', 'status', 'total_price', 'created_at', 'items']
+
+class SSLCommerzPaymentSerializer(serializers.Serializer):
+    cart_id = serializers.UUIDField()
+
+    def validate_cart_id(self, value):
+        # Check if cart exists and is not empty
+        try:
+            cart = Cart.objects.get(pk=value)
+        except Cart.DoesNotExist:
+            raise serializers.ValidationError("Cart not found.")
+
+        if not cart.items.exists():
+            raise serializers.ValidationError("Cart is empty.")
+
+        return value
