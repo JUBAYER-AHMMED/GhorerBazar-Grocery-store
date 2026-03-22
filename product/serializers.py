@@ -40,11 +40,12 @@ class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     seller = serializers.StringRelatedField(read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
+    categoryOf = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name','description','stock', 'price','price_with_tax','images','category','seller', 'reviews'
+            'id', 'name','description','stock', 'price','price_with_tax','images','category','categoryOf','seller', 'reviews'
         ]
     
     price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
