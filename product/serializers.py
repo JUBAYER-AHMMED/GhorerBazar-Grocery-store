@@ -20,14 +20,31 @@ class ProductImageSerializer(serializers.ModelSerializer):
         model = ProductImage
         fields = ['id','image']
 
+class ReviewSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField(method_name='get_user')
+    class Meta:
+        model = Review
+        fields = ['id','user','comment','ratings','product']
+        read_only_fields = ['user','product',]
+
+    def get_user(self, obj):
+        return SimpleUserSerializer(obj.user).data
+
+
+    def create(self,validated_data):
+        product_id = self.context['product_id']
+        review = Review.objects.create(product_id = product_id, **validated_data)
+        return review
+    
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     seller = serializers.StringRelatedField(read_only=True)
+    reviews = ReviewSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name','description','stock', 'price','price_with_tax','images','category','seller'
+            'id', 'name','description','stock', 'price','price_with_tax','images','category','seller', 'reviews'
         ]
     
     price_with_tax = serializers.SerializerMethodField(method_name='calculate_tax')
@@ -52,19 +69,3 @@ class SimpleUserSerializer(serializers.ModelSerializer):
 
 
 
-class ReviewSerializer(serializers.ModelSerializer):
-    user = serializers.SerializerMethodField(method_name='get_user')
-    class Meta:
-        model = Review
-        fields = ['id','user','comment','ratings','product']
-        read_only_fields = ['user','product',]
-
-    def get_user(self, obj):
-        return SimpleUserSerializer(obj.user).data
-
-
-    def create(self,validated_data):
-        product_id = self.context['product_id']
-        review = Review.objects.create(product_id = product_id, **validated_data)
-        return review
-    
