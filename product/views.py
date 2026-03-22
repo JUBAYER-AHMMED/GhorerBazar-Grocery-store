@@ -48,7 +48,7 @@ class ProductViewSet(ModelViewSet):
     permission_classes = [IsSellerOrAdminOrReadOnly]  # <-- updated
 
     def get_queryset(self):
-        return Product.objects.prefetch_related('images').all()
+        return Product.objects.prefetch_related('images', 'reviews').all()
 
     def perform_create(self, serializer):   # <-- added
         serializer.save(seller=self.request.user)
