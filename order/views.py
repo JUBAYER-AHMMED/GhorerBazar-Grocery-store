@@ -191,13 +191,16 @@ class SSLCommerzPaymentView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = SSLCommerzPaymentSerializer(data=request.data)
+        serializer = SSLCommerzPaymentSerializer(
+            data=request.data,
+            context={'request': request}
+        )
         serializer.is_valid(raise_exception=True)
-        cart_id = serializer.validated_data['cart_id']
 
-        cart = Cart.objects.prefetch_related('items__product').get(pk=cart_id)
+        order_id = serializer.validated_data['order_id']
+        order = Order.objects.get(id=order_id)  # safe because validated
 
-        total_amount = sum([item.product.price * item.quantity for item in cart.items.all()])
+        total_amount = order.total_price
 
         # SSLCommerz config
         store_id = settings.SSLCOMMERZ_STORE_ID
@@ -209,7 +212,7 @@ class SSLCommerzPaymentView(APIView):
             "store_passwd": store_pass,
             "total_amount": str(total_amount),
             "currency": "BDT",
-            "tran_id": str(cart_id),
+            "tran_id": str(order.id),
             "success_url": settings.SSLCOMMERZ_SUCCESS_URL,
             "fail_url": settings.SSLCOMMERZ_FAIL_URL,
             "cancel_url": settings.SSLCOMMERZ_CANCEL_URL,
@@ -235,36 +238,91 @@ class SSLCommerzPaymentView(APIView):
 
 
 # order/views.py
-from rest_framework.permissions import AllowAny
+# from rest_framework.permissions import AllowAny
+# from rest_framework.views import APIView
+# from rest_framework.response import Response
+# from django.conf import settings
+# from order.models import Cart
+# from order.services import OrderService
+# import requests
+
+# class SSLCommerzIPNView(APIView):
+#     """
+#     IPN (Instant Payment Notification) for SSLCommerz.
+#     Called by SSLCommerz server after payment.
+#     """
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         data = request.data
+#         tran_id = data.get("tran_id")  # our cart_id
+#         val_id = data.get("val_id")    # SSLCommerz transaction ID
+#         status = data.get("status")    # VALID / FAILED
+
+#         if not tran_id:
+#             return Response({"error": "tran_id missing"}, status=400)
+
+#         try:
+#             order = Order.objects.get(id=tran_id, status=Order.NOT_PAID)
+#         except Order.DoesNotExist:
+#             return Response({"error": "Order not found or already paid"}, status=404)
+#         # Verify payment via SSLCommerz API
+#         verify_url = "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
+#         if getattr(settings, "SSLCOMMERZ_LIVE", False):
+#             verify_url = "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
+
+#         params = {
+#             "val_id": val_id,
+#             "store_id": settings.SSLCOMMERZ_STORE_ID,
+#             "store_passwd": settings.SSLCOMMERZ_STORE_PASSWORD,
+#             "v": "1",
+#             "format": "json",
+#         }
+
+#         r = requests.get(verify_url, params=params)
+#         verification = r.json()
+
+#         if verification.get("status") == "VALID":
+#             # Payment is verified → create order
+#             order.status = "Ready To Ship"      # or whatever fits your flow
+#             order.save()
+#             return Response({"success": True, "order_id": str(order.id)})
+#         else:
+#             return Response({"success": False, "message": "Payment verification failed"}, status=400)
+
+
+from django.db import transaction
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from django.conf import settings
-from order.models import Cart
-from order.services import OrderService
 import requests
+from order.models import Order
 
 class SSLCommerzIPNView(APIView):
     """
-    IPN (Instant Payment Notification) for SSLCommerz.
-    Called by SSLCommerz server after payment.
+    IPN (Instant Payment Notification) handler for SSLCommerz.
+    Called asynchronously by SSLCommerz servers after a payment attempt.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
         data = request.data
-        tran_id = data.get("tran_id")  # our cart_id
-        val_id = data.get("val_id")    # SSLCommerz transaction ID
-        status = data.get("status")    # VALID / FAILED
 
-        if not tran_id:
-            return Response({"error": "tran_id missing"}, status=400)
+        tran_id = data.get("tran_id")
+        val_id = data.get("val_id")
+        # status = data.get("status")   # you can log this if you want, but not required for validation
+
+        if not tran_id or not val_id:
+            return Response({"error": "Missing tran_id or val_id"}, status=400)
 
         try:
-            cart = Cart.objects.prefetch_related('items__product').get(pk=tran_id)
-        except Cart.DoesNotExist:
-            return Response({"error": "Cart not found"}, status=404)
+            # IMPORTANT: Do NOT filter by user here — this is called by SSLCommerz, not the customer
+            order = Order.objects.get(id=tran_id, status=Order.NOT_PAID)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found or already processed"}, status=404)
 
-        # Verify payment via SSLCommerz API
+        # Step 1: Verify the transaction with SSLCommerz (this is what makes it secure)
         verify_url = "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
         if getattr(settings, "SSLCOMMERZ_LIVE", False):
             verify_url = "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
@@ -277,15 +335,32 @@ class SSLCommerzIPNView(APIView):
             "format": "json",
         }
 
-        r = requests.get(verify_url, params=params)
-        verification = r.json()
+        try:
+            verification_response = requests.get(verify_url, params=params, timeout=10)
+            verification_response.raise_for_status()
+            verification = verification_response.json()
+        except (requests.RequestException, ValueError):
+            # Log this in production (e.g. sentry / logging)
+            return Response({"error": "Failed to verify payment with SSLCommerz"}, status=502)
 
-        if verification.get("status") == "VALID":
-            # Payment is verified → create order
-            try:
-                order = OrderService.create_order(cart.user.id, cart.id)
-                return Response({"success": True, "order_id": str(order.id)})
-            except Exception as e:
-                return Response({"error": str(e)}, status=400)
-        else:
-            return Response({"success": False, "message": "Payment verification failed"}, status=400)
+        if verification.get("status") != "VALID":
+            # Optional: you could update order.status = "Payment Failed" here
+            return Response({
+                "success": False,
+                "message": f"Payment verification failed: {verification.get('status')}"
+            }, status=400)
+
+        # Step 2: Payment is VALID → update order (atomic)
+        with transaction.atomic():
+            order.status = "Ready To Ship"  # ← good choice, or "Paid", "Processing", etc.
+            order.save(update_fields=["status"])
+
+            # Optional future improvements:
+            # - Send confirmation email to customer
+            # - Create a Payment model instance to record val_id, amount, etc.
+
+        return Response({
+            "success": True,
+            "order_id": str(order.id),
+            "message": "Order payment confirmed"
+        }, status=200)

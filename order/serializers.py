@@ -185,16 +185,17 @@ class SellerOrderSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'status', 'total_price', 'created_at', 'items']
 
 class SSLCommerzPaymentSerializer(serializers.Serializer):
-    cart_id = serializers.UUIDField()
+    order_id = serializers.UUIDField()
 
-    def validate_cart_id(self, value):
-        # Check if cart exists and is not empty
+    def validate_order_id(self, value):
         try:
-            cart = Cart.objects.get(pk=value)
-        except Cart.DoesNotExist:
-            raise serializers.ValidationError("Cart not found.")
-
-        if not cart.items.exists():
-            raise serializers.ValidationError("Cart is empty.")
-
+            order = Order.objects.get(
+                pk=value,
+                user=self.context['request'].user,
+                status=Order.NOT_PAID
+            )
+        except Order.DoesNotExist:
+            raise serializers.ValidationError(
+                "Order not found, does not belong to you, or is no longer payable."
+            )
         return value
