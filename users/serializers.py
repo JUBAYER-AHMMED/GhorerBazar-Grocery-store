@@ -43,7 +43,11 @@ class UserRoleUpdateSerializer(serializers.ModelSerializer):
 
 
 
+
 class UserProfileSerializer(serializers.ModelSerializer):
+    # This is the key part for Cloudinary
+    profile_image = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = User
         fields = [
@@ -53,8 +57,17 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'last_name',
             'phone_number',
             'address',
-            'profile_image',
+            'profile_image', 
             'role',
             'balance'
         ]
         read_only_fields = ['email', 'role', 'balance']
+
+    def get_profile_image(self, obj):
+        """Return the actual URL from Cloudinary"""
+        if obj.profile_image:
+            return obj.profile_image.url
+        return None
+
+    def to_internal_value(self, data):
+        return super().to_internal_value(data)

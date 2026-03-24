@@ -317,7 +317,6 @@ class SSLCommerzIPNView(APIView):
             return Response({"error": "Missing tran_id or val_id"}, status=400)
 
         try:
-            # IMPORTANT: Do NOT filter by user here — this is called by SSLCommerz, not the customer
             order = Order.objects.get(id=tran_id, status=Order.NOT_PAID)
         except Order.DoesNotExist:
             return Response({"error": "Order not found or already processed"}, status=404)
