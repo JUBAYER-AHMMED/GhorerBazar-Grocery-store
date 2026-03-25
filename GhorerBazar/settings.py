@@ -214,12 +214,14 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 
-
 SSLCOMMERZ_STORE_ID = config('SSLCOMMERZ_STORE_ID')
 SSLCOMMERZ_STORE_PASSWORD = config('SSLCOMMERZ_STORE_PASSWORD')
 
-SSLCOMMERZ_SUCCESS_URL = "https://ghorer-bazar-client.vercel.app/payment-success"
-SSLCOMMERZ_FAIL_URL = "https://ghorer-bazar-client.vercel.app/payment-fail"
-SSLCOMMERZ_CANCEL_URL = "https://ghorer-bazar-client.vercel.app/payment-cancel"
+# SSLCOMMERZ_SUCCESS_URL = "https://ghorer-bazar-client.vercel.app/payment-success"
+SSLCOMMERZ_SUCCESS_URL = "https://groc-ashy.vercel.app/payment-success"
+# SSLCOMMERZ_FAIL_URL = "https://ghorer-bazar-client.vercel.app/payment-fail"
+SSLCOMMERZ_FAIL_URL = "https://groc-ashy.vercel.app/payment-fail"
+# SSLCOMMERZ_CANCEL_URL = "https://ghorer-bazar-client.vercel.app/payment-cancel"
+SSLCOMMERZ_CANCEL_URL = "https://groc-ashy.vercel.app/payment-cancel"
 
 FRONTEND_DOMAIN = config('FRONTEND_DOMAIN')
