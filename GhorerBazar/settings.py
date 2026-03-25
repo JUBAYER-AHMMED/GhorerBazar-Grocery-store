@@ -180,14 +180,18 @@ SIMPLE_JWT = {
 }
 
 DJOSER = {
-    'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
-    'ACTIVATION_URL': 'activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
+
     'ACTIVATION_URL': 'activate/{uid}/{token}',
     'PASSWORD_RESET_CONFIRM_URL': 'reset-password/{uid}/{token}',
-    'SERIALIZERS':{
-        'user_create':'users.serializers.UserCreateSerializer',
-        'current_user':'users.serializers.UserSerializer',
+
+    'EMAIL': {
+        'activation': 'users.email.ActivationEmail',
+    },
+
+    'SERIALIZERS': {
+        'user_create': 'users.serializers.UserCreateSerializer',
+        'current_user': 'users.serializers.UserSerializer',
     },
 }
 
@@ -217,3 +221,5 @@ SSLCOMMERZ_STORE_PASSWORD = config('SSLCOMMERZ_STORE_PASSWORD')
 SSLCOMMERZ_SUCCESS_URL = "https://ghorer-bazar-client.vercel.app/payment-success"
 SSLCOMMERZ_FAIL_URL = "https://ghorer-bazar-client.vercel.app/payment-fail"
 SSLCOMMERZ_CANCEL_URL = "https://ghorer-bazar-client.vercel.app/payment-cancel"
+
+FRONTEND_DOMAIN = "https://groc-ashy.vercel.app"
