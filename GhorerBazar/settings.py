@@ -222,4 +222,4 @@ SSLCOMMERZ_SUCCESS_URL = "https://ghorer-bazar-client.vercel.app/payment-success
 SSLCOMMERZ_FAIL_URL = "https://ghorer-bazar-client.vercel.app/payment-fail"
 SSLCOMMERZ_CANCEL_URL = "https://ghorer-bazar-client.vercel.app/payment-cancel"
 
-FRONTEND_DOMAIN = "https://groc-ashy.vercel.app"
+FRONTEND_DOMAIN = config('FRONTEND_DOMAIN')
