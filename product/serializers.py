@@ -39,7 +39,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     seller = serializers.StringRelatedField(read_only=True)
-    category = serializers.StringRelatedField(read_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all())  # <-- changed
     reviews = ReviewSerializer(many=True, read_only=True)
 
     class Meta:
