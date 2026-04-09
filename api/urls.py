@@ -7,7 +7,6 @@ from users.views import DepositView , UserRoleManagementViewSet
 from order.views import SSLCommerzPaymentView, SSLCommerzIPNView
 from users.views import UserProfileView
 
-
 router = routers.DefaultRouter()
 
 router.register('products', ProductViewSet ,basename='products')

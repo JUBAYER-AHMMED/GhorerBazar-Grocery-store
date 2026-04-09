@@ -1,16 +1,26 @@
-from django.shortcuts import render
+import json
+import requests
+from django.conf import settings
+from django.db import transaction
 from django.db.models import Prefetch
+from django.shortcuts import render
+
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
-from rest_framework.permissions import IsAuthenticated,IsAdminUser
+from rest_framework.permissions import IsAuthenticated,IsAdminUser,AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet,GenericViewSet
 from rest_framework import status
+
+from .serializers import SSLCommerzPaymentSerializer
+
 from order.models import Cart,CartItem,Order,OrderItem, Wishlist
 from order.serializers import CartSerializer,CartItemSerializer, AddCartItemSerializer, UpdateCartItemSerializer, OrderSerializer, CreateOrderSerializer, UpdateOrderSerializer, EmptySerializer, WishlistSerializer, SellerOrderSerializer
 from order.services import OrderService
+
 
 # Create your views here.
 class CartViewSet(CreateModelMixin,RetrieveModelMixin,DestroyModelMixin,GenericViewSet):
@@ -176,16 +186,7 @@ class SellerOrderViewSet(viewsets.ReadOnlyModelViewSet):
         ).filter(items__product__seller=user).distinct()
     
 
-# order/views.py
-# order/views.py
-import json
-import requests
-from django.conf import settings
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .serializers import SSLCommerzPaymentSerializer
-from order.models import Cart
+
 
 class SSLCommerzPaymentView(APIView):
     permission_classes = [IsAuthenticated]
@@ -236,68 +237,6 @@ class SSLCommerzPaymentView(APIView):
             return Response({"payment_url": data.get("GatewayPageURL")})
         return Response({"error": "Failed to create SSLCommerz session"}, status=400)
 
-
-# order/views.py
-# from rest_framework.permissions import AllowAny
-# from rest_framework.views import APIView
-# from rest_framework.response import Response
-# from django.conf import settings
-# from order.models import Cart
-# from order.services import OrderService
-# import requests
-
-# class SSLCommerzIPNView(APIView):
-#     """
-#     IPN (Instant Payment Notification) for SSLCommerz.
-#     Called by SSLCommerz server after payment.
-#     """
-#     permission_classes = [AllowAny]
-
-#     def post(self, request):
-#         data = request.data
-#         tran_id = data.get("tran_id")  # our cart_id
-#         val_id = data.get("val_id")    # SSLCommerz transaction ID
-#         status = data.get("status")    # VALID / FAILED
-
-#         if not tran_id:
-#             return Response({"error": "tran_id missing"}, status=400)
-
-#         try:
-#             order = Order.objects.get(id=tran_id, status=Order.NOT_PAID)
-#         except Order.DoesNotExist:
-#             return Response({"error": "Order not found or already paid"}, status=404)
-#         # Verify payment via SSLCommerz API
-#         verify_url = "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php"
-#         if getattr(settings, "SSLCOMMERZ_LIVE", False):
-#             verify_url = "https://securepay.sslcommerz.com/validator/api/validationserverAPI.php"
-
-#         params = {
-#             "val_id": val_id,
-#             "store_id": settings.SSLCOMMERZ_STORE_ID,
-#             "store_passwd": settings.SSLCOMMERZ_STORE_PASSWORD,
-#             "v": "1",
-#             "format": "json",
-#         }
-
-#         r = requests.get(verify_url, params=params)
-#         verification = r.json()
-
-#         if verification.get("status") == "VALID":
-#             # Payment is verified → create order
-#             order.status = "Ready To Ship"      # or whatever fits your flow
-#             order.save()
-#             return Response({"success": True, "order_id": str(order.id)})
-#         else:
-#             return Response({"success": False, "message": "Payment verification failed"}, status=400)
-
-
-from django.db import transaction
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from django.conf import settings
-import requests
-from order.models import Order
 
 class SSLCommerzIPNView(APIView):
     """
