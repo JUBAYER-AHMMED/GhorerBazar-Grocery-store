@@ -6,9 +6,15 @@ from decimal import Decimal
 from rest_framework.viewsets import ModelViewSet
 from users.models import User
 from users.serializers import UserRoleUpdateSerializer
+from users.throttles import *
+from django.db.models import F
+
+
 
 class DepositView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [DepositRateThrottle]
+
 
     def post(self, request):
         amount = request.data.get('amount')
@@ -34,8 +40,9 @@ class DepositView(APIView):
             )
 
         user = request.user
-        user.balance += amount
+        user.balance = F('balance') + amount
         user.save()
+        user.refresh_from_db()
 
         return Response({
             'message': 'Deposit successful',
@@ -69,6 +76,8 @@ from users.serializers import UserProfileSerializer
 class UserProfileView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = UserProfileSerializer
+    throttle_classes = [ProfileRateThrottle]
+
 
     def get_object(self):
         return self.request.user
